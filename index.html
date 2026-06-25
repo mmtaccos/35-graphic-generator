@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokemon Roster Generator</title>
+
+    <!-- Source Sans 3 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://use.typekit.net/fgm2gea.css">
+
+    <!-- Snapdom for high-quality PNG export -->
+    <script src="https://unpkg.com/@zumer/snapdom/dist/snapdom.js"></script>
+
+    <style>
+        :root {
+            --gradient-color-1: red;
+            --gradient-color-2: blue;
+            --text-y-offset: 4px;
+            --title-y-offset: 10px;
+            --title-x-offset: -300px;
+            --title-font-size: 60px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: white;
+            color: #fff;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .controls {
+            margin-bottom: 20px;
+            text-align: center;
+            background: #333;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+
+        textarea {
+            width: 300px;
+            height: 150px;
+            background: #111;
+            color: #00ff00;
+            font-family: monospace;
+            padding: 10px;
+            border: 1px solid #555;
+            border-radius: 4px;
+            display: block;
+            margin-bottom: 10px;
+            resize: vertical;
+        }
+
+        button {
+            background: #ff1c1c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0 5px;
+        }
+
+        button:hover {
+            background: #cc1515;
+        }
+
+        .btn-download {
+            background: #2c6e2c;
+        }
+
+        .btn-download:hover {
+            background: #1e551e;
+        }
+
+        .graphic-bg {
+            width: 1040px;
+            background: linear-gradient(135deg, var(--gradient-color-1), var(--gradient-color-2));
+            box-shadow: 0 10px 50px rgba(0,0,0,0.5);
+            flex-shrink: 0;
+        }
+
+        .graphic-container {
+            position: relative;
+            width: 1040px;
+            background-size: 100% 100%;
+            background-position: center;
+            background-repeat: no-repeat;
+            visibility: hidden;
+        }
+
+        .title-text {
+            position: absolute;
+            left: 50%;
+            top: 28px;
+            transform: translateX(calc(-50% + var(--title-x-offset))) translateY(var(--title-y-offset));
+            color: #f4d06f;
+            font-family: "source-sans-3-variable", sans-serif;
+            font-variation-settings: 'wght' 900;
+            font-size: var(--title-font-size);
+            text-align: center;
+            line-height: 1;
+            text-shadow: 0 2px 3px rgba(0,0,0,0.85);
+            white-space: normal;
+            width: max-content;
+            max-width: 900px;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .sprite-grid {
+            position: absolute;
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            pointer-events: none;
+        }
+
+        .grid-cell {
+            position: relative;
+            overflow: visible;
+            display: flex;
+            justify-content: center;
+        }
+
+        .grid-cell img {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            transform: translateX(-50%);
+            object-fit: contain;
+            image-rendering: pixelated;
+            display: block;
+        }
+
+        .pokemon-name {
+            position: absolute;
+            left: 50%;
+            top: 100%;
+            transform: translate(-50%, var(--text-y-offset));
+            margin-top: 0;
+            color: white;
+            font-family: "source-sans-3-variable", sans-serif;
+            font-variation-settings: 'wght' 900;
+            font-size: 20px;
+            text-align: center;
+            line-height: 1.1;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+            white-space: normal;
+            width: max-content;
+            max-width: 140px;
+            word-break: normal;
+            pointer-events: none;
+        }
+
+        .color-controls,
+        .offset-controls {
+            margin-top: 15px;
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            color: #000;
+        }
+
+        .color-group,
+        .offset-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+        }
+
+        .color-group input[type="color"] {
+            width: 60px;
+            height: 40px;
+            border: none;
+            background: none;
+            cursor: pointer;
+        }
+
+        .offset-group input[type="range"] {
+            width: 140px;
+        }
+
+        .info-note {
+            margin-top: 15px;
+            font-size: 12px;
+            color: #aaa;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <h3>Paste Pokémon List (One per line)</h3>
+        <textarea id="pokemonList" placeholder="Example list:
+          dudunsparce
+          muk_alola Muk-A
+          ambipom
+          floatzel
+          sandslash
+          perrserker
+          copperajah
+          dugtrio_alola Dugtrio-A
+          meganium
+          tauros
+          moltres
+          munkidori
+          basculegion_f Basculegion-F
+          farigiraf
+          porygon_z Porygon-Z
+          tauros_paldea_aqua Tauros-P-A
+          corviknight
+          sigilyph
+          nidoking
+          armarouge
+          froslass
+          magmortar
+          zoroark
+          articuno
+          hippowdon
+          orthworm
+          weezing_galar Weezing-G
+          ninjask
+          sirfetch_d Sirfetch'd
+          crobat
+          golem_alola Golem-A
+          steelix
+          pyukumuku
+          bibarel
+          simisear">
+          
+        </textarea>
+
+        <h3>Title Text</h3>
+        <input id="titleInput" type="text" value="" style="width:300px;padding:10px;margin-bottom:10px;border-radius:4px;border:1px solid #555;background:#111;color:#ffd966;">
+
+        <div>
+            <button onclick="generateGrid()">Generate Pokémon</button>
+            <button id="downloadBtn" class="btn-download">Download PNG</button>
+        </div>
+    </div>
+
+    <div class="graphic-bg">
+        <div class="graphic-container" id="graphicContainer">
+            <div class="title-text" id="graphicTitle">Title</div>
+            <div class="sprite-grid" id="spriteGrid"></div>
+        </div>
+    </div>
+
+    <div class="color-controls">
+        <div class="color-group">
+            <label for="color1">Gradient Color 1</label>
+            <input type="color" id="color1" value="#ff0000">
+        </div>
+
+        <div class="color-group">
+            <label for="color2">Gradient Color 2</label>
+            <input type="color" id="color2" value="#0000ff">
+        </div>
+    </div>
+
+    <div class="offset-controls" id="offsetControls"></div>
+    <div class="offset-controls" id="sizeControls"></div>
+
+    <div class="offset-controls">
+        <div class="offset-group">
+            <strong>Title Position</strong>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <label for="titleX">X:</label>
+                <span id="titleXValue" style="min-width:24px; display:inline-block; text-align:right;">-300</span>
+                <input type="range" id="titleX" min="-450" max="85" value="-300">
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <label for="titleY">Y:</label>
+                <span id="titleYValue" style="min-width:24px; display:inline-block; text-align:right;">3</span>
+                <input type="range" id="titleY" min="-10" max="30" value="3">
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <label for="titleSize">Size:</label>
+                <span id="titleSizeValue" style="min-width:24px; display:inline-block; text-align:right;">60</span>
+                <input type="range" id="titleSize" min="20" max="90" value="60">
+            </div>
+        </div>
+    </div>
+
+    <div class="info-note">sprites from radical red // template by mambotnd</div>
+
+    <script>
+        const imageUrl = "https://uploads.onecompiler.io/42wjh6sph/44r58jm4q/35-Pokes-Templates-RR.png";
+        const container = document.getElementById('graphicContainer');
+        const grid = document.getElementById('spriteGrid');
+        const graphicTitle = document.getElementById('graphicTitle');
+
+        const color1 = document.getElementById('color1');
+        const color2 = document.getElementById('color2');
+        const offsetControls = document.getElementById('offsetControls');
+
+        const titleInput = document.getElementById('titleInput');
+        const titleX = document.getElementById('titleX');
+        const titleY = document.getElementById('titleY');
+        const titleSize = document.getElementById('titleSize');
+        const titleXValue = document.getElementById('titleXValue');
+        const titleYValue = document.getElementById('titleYValue');
+        const titleSizeValue = document.getElementById('titleSizeValue');
+
+        const FIXED_WIDTH = 1040;
+
+        const template = {
+            top: 0.195,
+            left: 0.042,
+            width: 0.916,
+            height: 0.73
+        };
+
+        const spriteScale = 0.95;
+        let spriteSizeMultiplier = 1.25;
+
+        let columnOffsets = [-32, -19, -10, 2, 12, 24, 34];
+        let rowOffsets = [-50, -35, -22, -9, 10];
+        let textYOffset = -5;
+        let titleYOffset = 3;
+        let titleXOffset = -300;
+        let titleFontSize = 60;
+
+        function updateGradient() {
+            document.documentElement.style.setProperty('--gradient-color-1', color1.value);
+            document.documentElement.style.setProperty('--gradient-color-2', color2.value);
+        }
+
+        function updateTextYOffset() {
+            document.documentElement.style.setProperty('--text-y-offset', textYOffset + 'px');
+        }
+
+        function updateTitleText() {
+            graphicTitle.textContent = titleInput.value.trim() || 'Title Text';
+        }
+
+        function updateTitleOffsets() {
+            document.documentElement.style.setProperty('--title-y-offset', titleYOffset + 'px');
+            document.documentElement.style.setProperty('--title-x-offset', titleXOffset + 'px');
+            document.documentElement.style.setProperty('--title-font-size', titleFontSize + 'px');
+        }
+
+        color1.addEventListener('input', updateGradient);
+        color2.addEventListener('input', updateGradient);
+        titleInput.addEventListener('input', updateTitleText);
+
+        titleX.addEventListener('input', () => {
+            titleXOffset = parseInt(titleX.value, 10);
+            titleXValue.textContent = titleX.value;
+            updateTitleOffsets();
+        });
+
+        titleY.addEventListener('input', () => {
+            titleYOffset = parseInt(titleY.value, 10);
+            titleYValue.textContent = titleY.value;
+            updateTitleOffsets();
+        });
+
+        titleSize.addEventListener('input', () => {
+            titleFontSize = parseInt(titleSize.value, 10);
+            titleSizeValue.textContent = titleSize.value;
+            updateTitleOffsets();
+        });
+
+        updateGradient();
+        updateTextYOffset();
+        updateTitleText();
+        updateTitleOffsets();
+
+        function renderOffsetSliders() {
+            offsetControls.innerHTML = '';
+            const colWrapper = document.createElement('div');
+            colWrapper.className = 'offset-group';
+            colWrapper.innerHTML = '<strong>Column X Offsets</strong>';
+            columnOffsets.forEach((val, i) => {
+                const row = document.createElement('div');
+                row.style.display = 'flex';
+                row.style.alignItems = 'center';
+                row.style.gap = '8px';
+
+                const label = document.createElement('label');
+                label.textContent = `Col ${i + 1}:`;
+
+                const valueSpan = document.createElement('span');
+                valueSpan.textContent = val;
+                valueSpan.style.minWidth = '24px';
+                valueSpan.style.display = 'inline-block';
+                valueSpan.style.textAlign = 'right';
+
+                const input = document.createElement('input');
+                input.type = 'range';
+                input.min = '-50';
+                input.max = '50';
+                input.value = val;
+                input.addEventListener('input', () => {
+                    columnOffsets[i] = parseInt(input.value, 10);
+                    valueSpan.textContent = input.value;
+                    adjustGridOffsets();
+                });
+
+                row.appendChild(label);
+                row.appendChild(valueSpan);
+                row.appendChild(input);
+                colWrapper.appendChild(row);
+            });
+
+            const rowWrapper = document.createElement('div');
+            rowWrapper.className = 'offset-group';
+            rowWrapper.innerHTML = '<strong>Row Y Offsets</strong>';
+            rowOffsets.forEach((val, i) => {
+                const row = document.createElement('div');
+                row.style.display = 'flex';
+                row.style.alignItems = 'center';
+                row.style.gap = '8px';
+
+                const label = document.createElement('label');
+                label.textContent = `Row ${i + 1}:`;
+
+                const valueSpan = document.createElement('span');
+                valueSpan.textContent = val;
+                valueSpan.style.minWidth = '24px';
+                valueSpan.style.display = 'inline-block';
+                valueSpan.style.textAlign = 'right';
+
+                const input = document.createElement('input');
+                input.type = 'range';
+                input.min = '-50';
+                input.max = '50';
+                input.value = val;
+                input.addEventListener('input', () => {
+                    rowOffsets[i] = parseInt(input.value, 10);
+                    valueSpan.textContent = input.value;
+                    adjustGridOffsets();
+                });
+
+                row.appendChild(label);
+                row.appendChild(valueSpan);
+                row.appendChild(input);
+                rowWrapper.appendChild(row);
+            });
+
+            const textWrapper = document.createElement('div');
+            textWrapper.className = 'offset-group';
+            textWrapper.innerHTML = '<strong>Text Y Offset</strong>';
+
+            const textRow = document.createElement('div');
+            textRow.style.display = 'flex';
+            textRow.style.alignItems = 'center';
+            textRow.style.gap = '8px';
+
+            const textLabel = document.createElement('label');
+            textLabel.textContent = 'Y:';
+
+            const textValueSpan = document.createElement('span');
+            textValueSpan.textContent = textYOffset;
+            textValueSpan.style.minWidth = '24px';
+            textValueSpan.style.display = 'inline-block';
+            textValueSpan.style.textAlign = 'right';
+
+            const textInput = document.createElement('input');
+            textInput.type = 'range';
+            textInput.min = '-40';
+            textInput.max = '40';
+            textInput.value = textYOffset;
+            textInput.addEventListener('input', () => {
+                textYOffset = parseInt(textInput.value, 10);
+                textValueSpan.textContent = textInput.value;
+                updateTextYOffset();
+            });
+
+            textRow.appendChild(textLabel);
+            textRow.appendChild(textValueSpan);
+            textRow.appendChild(textInput);
+            textWrapper.appendChild(textRow);
+
+            offsetControls.appendChild(colWrapper);
+            offsetControls.appendChild(rowWrapper);
+            offsetControls.appendChild(textWrapper);
+        }
+
+        function renderSizeControl() {
+            const sizeControls = document.getElementById('sizeControls');
+            sizeControls.innerHTML = '';
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'offset-group';
+            wrapper.innerHTML = '<strong>Sprite Size</strong>';
+
+            const row = document.createElement('div');
+            row.style.display = 'flex';
+            row.style.alignItems = 'center';
+            row.style.gap = '8px';
+
+            const label = document.createElement('label');
+            label.textContent = 'Scale:';
+
+            const valueSpan = document.createElement('span');
+            valueSpan.textContent = spriteSizeMultiplier.toFixed(2);
+            valueSpan.style.minWidth = '36px';
+            valueSpan.style.display = 'inline-block';
+
+            const input = document.createElement('input');
+            input.type = 'range';
+            input.min = '0.5';
+            input.max = '1.5';
+            input.step = '0.01';
+            input.value = spriteSizeMultiplier;
+
+            input.addEventListener('input', () => {
+                spriteSizeMultiplier = parseFloat(input.value);
+                valueSpan.textContent = spriteSizeMultiplier.toFixed(2);
+                updateSpriteSizes();
+            });
+
+            row.appendChild(label);
+            row.appendChild(valueSpan);
+            row.appendChild(input);
+            wrapper.appendChild(row);
+            sizeControls.appendChild(wrapper);
+        }
+
+        renderOffsetSliders();
+        renderSizeControl();
+
+        let templateReady = false;
+        const imgLoader = new Image();
+        imgLoader.src = imageUrl;
+
+        imgLoader.onload = function () {
+            container.style.backgroundImage = `url('${imageUrl}')`;
+            container.style.aspectRatio = `${imgLoader.naturalWidth} / ${imgLoader.naturalHeight}`;
+            container.style.visibility = 'visible';
+            templateReady = true;
+            updateGridPosition();
+            updateSpriteSizes();
+            adjustGridOffsets();
+        };
+
+        function updateGridPosition() {
+            const fixedHeight = FIXED_WIDTH / (imgLoader.naturalWidth / imgLoader.naturalHeight);
+            grid.style.top = (fixedHeight * template.top) + 'px';
+            grid.style.left = (FIXED_WIDTH * template.left) + 'px';
+            grid.style.width = (FIXED_WIDTH * template.width) + 'px';
+            grid.style.height = (fixedHeight * template.height) + 'px';
+        }
+
+        function updateSpriteSizes() {
+            const imgs = document.querySelectorAll('.grid-cell img');
+            imgs.forEach(img => {
+                const cell = img.parentElement;
+                const cellWidth = cell.clientWidth;
+                const cellHeight = cell.clientHeight;
+                if (cellWidth > 0 && cellHeight > 0) {
+                    const size = Math.min(cellWidth * 0.85, cellHeight * 0.85);
+                    if (size > 0) {
+                        img.style.width = (size * spriteScale * spriteSizeMultiplier) + 'px';
+                        img.style.height = 'auto';
+                        img.style.maxWidth = 'none';
+                        img.style.maxHeight = 'none';
+                    }
+                }
+            });
+        }
+
+        function adjustGridOffsets() {
+            const cells = document.querySelectorAll('.grid-cell');
+            cells.forEach((cell, index) => {
+                const col = index % 7;
+                const row = Math.floor(index / 7);
+                const xOffset = columnOffsets[col] || 0;
+                const yOffset = rowOffsets[row] || 0;
+                cell.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
+            });
+        }
+
+        function refreshLayout() {
+            if (!templateReady) return;
+            updateGridPosition();
+            updateSpriteSizes();
+            adjustGridOffsets();
+            updateTitleText();
+            updateTitleOffsets();
+        }
+
+        function parsePokemonLine(line) {
+            const trimmed = line.trim();
+            if (!trimmed) return null;
+
+            const firstSpace = trimmed.indexOf(' ');
+            if (firstSpace === -1) {
+                return {
+                    spriteName: trimmed.toLowerCase().replace(/\s+/g, '-'),
+                    displayName: trimmed.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+                };
+            }
+
+            const spritePart = trimmed.slice(0, firstSpace).trim();
+            const displayPart = trimmed.slice(firstSpace + 1).trim();
+
+            return {
+                spriteName: spritePart.toLowerCase().replace(/\s+/g, '-'),
+                displayName: displayPart
+            };
+        }
+
+        function generateGrid() {
+            const textarea = document.getElementById('pokemonList');
+            grid.innerHTML = '';
+
+            const entries = textarea.value.split('\n')
+                .map(parsePokemonLine)
+                .filter(entry => entry && entry.spriteName.length > 0);
+
+            const maxSpots = 35;
+            const totalToRender = Math.min(entries.length, maxSpots);
+
+            for (let i = 0; i < maxSpots; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'grid-cell';
+
+                if (i < totalToRender) {
+                    const entry = entries[i];
+
+                    const img = document.createElement('img');
+                    img.src = `https://generationssd.co.uk/sprites/radred/${entry.spriteName}.png`;
+                    img.alt = entry.spriteName;
+                    img.onerror = function () {
+                        this.style.display = 'none';
+                    };
+
+                    const nameLabel = document.createElement('div');
+                    nameLabel.className = 'pokemon-name';
+                    nameLabel.textContent = entry.displayName;
+
+                    cell.appendChild(img);
+                    cell.appendChild(nameLabel);
+                }
+
+                grid.appendChild(cell);
+            }
+
+            if (templateReady) {
+                refreshLayout();
+                setTimeout(() => {
+                    updateSpriteSizes();
+                    adjustGridOffsets();
+                }, 30);
+            }
+        }
+
+        async function downloadRosterAsPNG() {
+            const graphicElem = document.getElementById('graphicContainer');
+            if (!graphicElem) {
+                alert("Graphic container not found.");
+                return;
+            }
+            if (!templateReady) {
+                alert("Please wait for the template background to fully load, then generate graphic again.");
+                return;
+            }
+
+            refreshLayout();
+            await new Promise(r => setTimeout(r, 80));
+
+            const textarea = document.getElementById('pokemonList');
+            let firstPokemon = textarea.value.split('\n')[0]?.trim() || 'roster';
+            firstPokemon = firstPokemon.replace(/[^a-z0-9]/gi, '-').toLowerCase().slice(0, 30);
+            const filename = `pokemon_roster_${firstPokemon || 'grid'}.png`;
+
+            try {
+                await snapdom.download(graphicElem, {
+                    filename: filename,
+                    scale: 2.5,
+                    backgroundColor: null,
+                    embedFonts: true,
+                    quality: 1,
+                    optimize: true
+                });
+            } catch (err) {
+                console.error(err);
+                alert("Export failed: " + err.message + "\nMake sure all images are loaded and CORS allows canvas capture.");
+            }
+        }
+
+        const downloadBtn = document.getElementById('downloadBtn');
+        if (downloadBtn) {
+            downloadBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                downloadRosterAsPNG();
+            });
+        }
+
+        window.generateGrid = generateGrid;
+        window.downloadRosterAsPNG = downloadRosterAsPNG;
+
+        if (imgLoader.complete && imgLoader.naturalWidth) {
+            imgLoader.onload();
+        }
+    </script>
+</body>
+</html>
